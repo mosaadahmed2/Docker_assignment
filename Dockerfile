@@ -1,5 +1,9 @@
 # Dockerfile
-FROM python:3.9
+FROM python:3.9-alpine
+
+# Install bash
+RUN apk add --no-cache bash
+
 
 # Create the output directory
 RUN mkdir -p /home/data/output
