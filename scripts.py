@@ -1,77 +1,105 @@
-import os
+import string
 from collections import Counter
 import socket
-import re
+import os
 
-file1_path = "/home/data/IF.txt"
-file2_path = "/home/data/AlwaysRememberUsThisWay.txt"
-output_file = "/home/data/output/result.txt"  
+# Ensure output directory exists
+if not os.path.exists('/home/data/output'):
+    os.makedirs('/home/data/output')
 
-def read_file(file_path):
+# Function to clean text and remove punctuation, while preserving standalone words
+def clean_text(text):
+    # Remove punctuation and lower the case
+    return text.translate(str.maketrans('', '', string.punctuation)).lower()
+
+# Count the number of words in a file
+def count_words(file_path):
     with open(file_path, 'r') as file:
-        return file.read()
+        text = file.read()  # Read the file as-is
+        cleaned_text = clean_text(text)  # Clean the text
+    return len(cleaned_text.split())
 
-def word_count(text):
-    return len(text.split())
+# Get the top 3 most frequent words in a file
+def top_3_words(file_path):
+    with open(file_path, 'r') as file:
+        text = file.read()  # Read the file as-is
+        cleaned_words = clean_text(text).split()  # Clean and split into words
+    word_count = Counter(cleaned_words)
+    return word_count.most_common(3)
 
-def grand_total(count1, count2):
-    return count1 + count2
-
-def top_words(text, top_n=3):
-    words = text.split()
-    counter = Counter(words)
-    return counter.most_common(top_n)
-
+# Handle contractions
 def handle_contractions(text):
     contractions = {
-        "I'm": "I am", "can't": "cannot", "don't": "do not", 
-        "you're": "you are", "they're": "they are", "it's": "it is",
-        "isn't": "is not", "aren't": "are not", "won't": "will not",
-        "didn't": "did not", "I'll": "I will", "we're": "we are",
-        "you've": "you have", "he's": "he is", "she's": "she is",
-        "wasn't": "was not", "weren't": "were not", "that's": "that is"
+        "I'm": "I am", "It's": "It is", "I'll": "I will",
+        "you're": "you are", "You're": "You are", "can't": "can not",
+        "couldn't": "could not", "don't": "do not", "won't": "will not",
+        "that's": "that is", "don’t": "do not", "that’s": "that is",
+        "build ’em": "build them", "you’ve": "you have", "you’ll": "you will"
     }
-    
-    pattern = re.compile(r'\b(' + '|'.join(re.escape(k) for k in contractions.keys()) + r')\b')
-    expanded_text = pattern.sub(lambda x: contractions[x.group(0)], text)
-    
-    return expanded_text
+    for contraction, full_form in contractions.items():
+        text = text.replace(contraction, full_form)
+    return text
 
-def get_ip_address():
+# Count words in a file with contractions handled
+def count_words_with_contractions(file_path):
+    with open(file_path, 'r') as file:
+        text = file.read()  # Read the file as-is
+        text = handle_contractions(text)  # Handle contractions
+        cleaned_text = clean_text(text)  # Clean the text
+    return len(cleaned_text.split())
+
+# Get the top 3 words in a file after handling contractions
+def top_3_contractions(file_path):
+    with open(file_path, 'r') as file:
+        text = file.read()  # Read the text as-is
+        text = handle_contractions(text)  # Handle contractions
+        cleaned_words = clean_text(text).split()  # Clean and split into words
+    word_count = Counter(cleaned_words)
+    return word_count.most_common(3)
+
+# Get the container's IP address
+def get_ip():
     return socket.gethostbyname(socket.gethostname())
 
-if __name__ == "__main__":
+# Count words in both files without contractions
+total_words_if = count_words('/home/data/IF.txt')
+total_words_always = count_words('/home/data/AlwaysRememberUsThisWay.txt')
+grand_total = total_words_if + total_words_always
 
-    output_dir = "/home/data/output"
-    os.makedirs(output_dir, exist_ok=True)
+# Count words in both files with contractions handled
+total_words_if_with_contractions = count_words_with_contractions('/home/data/IF.txt')
+total_words_always_with_contractions = count_words_with_contractions('/home/data/AlwaysRememberUsThisWay.txt')
+grand_total_with_contractions = total_words_if_with_contractions + total_words_always_with_contractions
 
-    text1 = read_file(file1_path)
-    text2 = read_file(file2_path)
+# Top 3 words in IF.txt without contractions
+top_if = top_3_words('/home/data/IF.txt')
+# Top 3 words in AlwaysRememberUsThisWay.txt without contractions
+top_always = top_3_words('/home/data/AlwaysRememberUsThisWay.txt')
 
-    count1 = word_count(text1)
-    count2 = word_count(text2)
-    grand_count = grand_total(count1, count2)
+# Top 3 words in IF.txt with contractions
+top_if_with_contractions = top_3_contractions('/home/data/IF.txt')
+# Top 3 words in AlwaysRememberUsThisWay.txt with contractions
+top_always_with_contractions = top_3_contractions('/home/data/AlwaysRememberUsThisWay.txt')
 
-    top_if_words = top_words(text1)
+# Get container's IP address
+ip_address = get_ip()
 
-    # Handle contractions in AlwaysRememberUsThisWay.txt
-    text2_with_contractions = handle_contractions(text2)
+# Write results to /home/data/output/result.txt
+with open('/home/data/output/result.txt', 'w') as result_file:
+    result_file.write(f"Total words in IF.txt (without contractions): {total_words_if}\n")
+    result_file.write(f"Total words in AlwaysRememberUsThisWay.txt (without contractions): {total_words_always}\n")
+    result_file.write(f"Grand total of words (without contractions): {grand_total}\n")
+    result_file.write(f"Top 3 words in IF.txt (without contractions): {top_if}\n")
+    result_file.write(f"Top 3 words in AlwaysRememberUsThisWay.txt (without contractions): {top_always}\n")
+    
+    result_file.write(f"\nTotal words in IF.txt (with contractions): {total_words_if_with_contractions}\n")
+    result_file.write(f"Total words in AlwaysRememberUsThisWay.txt (with contractions): {total_words_always_with_contractions}\n")
+    result_file.write(f"Grand total of words (with contractions): {grand_total_with_contractions}\n")
+    result_file.write(f"Top 3 words in IF.txt (with contractions): {top_if_with_contractions}\n")
+    result_file.write(f"Top 3 words in AlwaysRememberUsThisWay.txt (with contractions): {top_always_with_contractions}\n")
+    
+    result_file.write(f"IP Address: {ip_address}\n")
 
-    # Top words in AlwaysRememberUsThisWay.txt after handling contractions
-    top_always_words = top_words(text2_with_contractions)
-
-    # IP address
-    ip_address = get_ip_address()
-
-    # Write results to file
-    with open(output_file, 'w') as output:
-        output.write(f"Total words in the text file IF.txt: {count1}\n")
-        output.write(f"Total words in the text file AlwaysRememberUsThisWay.txt: {count2}\n")
-        output.write(f"Grand total words: {grand_count}\n")
-        output.write(f"Top 3 words in the text file IF.txt: {top_if_words}\n")
-        output.write(f"Top 3 words in the text file AlwaysRememberUsThisWay.txt after handling contractions: {top_always_words}\n")
-        output.write(f"Container IP Address: {ip_address}\n")
-
-    # Print result file content to console
-    with open(output_file, 'r') as result:
-        print(result.read())
+# Print the result before exiting
+with open('/home/data/output/result.txt', 'r') as result_file:
+    print(result_file.read())
